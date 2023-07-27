@@ -1,0 +1,206 @@
+apiVersion: template.openshift.io/v1
+kind: Template
+labels:
+  app: image-builder-pulp
+  template: image-builder-pulp-clowdapp
+metadata:
+  annotations:
+    description: |-
+      A quick way to test and try Pulp running in OpenShift clusters. For more information about using this template see ...
+
+      WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.
+    openshift.io/display-name: Pulp (Ephemeral)
+    openshift.io/documentation-url: https://docs.pulpproject.org/pulpcore/
+    openshift.io/long-description: This template defines resources needed
+      to install Pulp. The database is stored in non-persistent storage,
+      so this configuration should be used for experimental purposes only.
+    openshift.io/support-url: https://github.com/pulp/pulp-operator/issues
+    samples.operator.openshift.io/version: 4.10.12
+    tags: quickstart,pulp
+    template.openshift.io/bindable: "false"
+    iconClass: icon-python
+  labels:
+    samples.operator.openshift.io/managed: "false"
+  name: image-builder-pulp-clowdapp
+objects:
+- apiVersion: v1
+  kind: ConfigMap
+  metadata:
+    name: config-sh-map
+  data:
+    config-sh-file: |
+      #!/bin/bash
+      export PATH=${PATH}:/tmp/bin
+
+      kubectl get secret
+      retVal=$?
+      echo $retVal
+      if [ $retval -ne 0 ]; then
+         echo "Stopping here because we are running on the staging environment or we cannot retrieve secrets"
+         sleep 9999999999
+         exit 0
+      fi
+
+      mkdir /tmp/bin
+      cd /tmp/bin
+      curl -L -O https://github.com/stedolan/jq/releases/download/jq-1.6/jq-linux64
+      mv jq-linux64 jq
+      chmod +x jq
+
+      # https://docs.pulpproject.org/pulp_operator/configuring/storage/#configuring-pulp-operator-to-use-object-storage
+      S3_ACCESS_KEY_ID=$(cat /cdapp/cdappconfig.json | jq -r '.objectStore.buckets[0].accessKey')
+      S3_SECRET_ACCESS_KEY=$(cat /cdapp/cdappconfig.json | jq -r '.objectStore.buckets[0].secretKey')
+      S3_BUCKET_NAME=$(cat /cdapp/cdappconfig.json | jq -r '.objectStore.buckets[0].name')
+      #S3_REGION='us-east-1'
+      S3_HOSTNAME=$(cat /cdapp/cdappconfig.json | jq -r '.objectStore.hostname')
+
+      # FIXME: Find out why these 2 `kubectl apply` commands keep getting killed.
+      # It is hard to debug inside the container. OOM could be to blame, but we cannot run `dmesg`.
+      until kubectl apply -f- <<EOF
+      apiVersion: v1
+      kind: Secret
+      metadata:
+        name: 'image-builder-pulp-s3-for-operator'
+      stringData:
+        s3-access-key-id: $S3_ACCESS_KEY_ID
+        s3-secret-access-key: $S3_SECRET_ACCESS_KEY
+        s3-bucket-name: $S3_BUCKET_NAME
+        s3-endpoint: http://${S3_HOSTNAME}:9000
+      EOF
+      do
+        echo "Trying kubectl apply again"
+        sleep 1
+      done
+      # s3-region: $S3_REGION
+      
+      # https://docs.pulpproject.org/pulp_operator/configuring/cache/#configuring-pulp-operator-to-use-an-external-redis-installation
+      
+      kubectl create secret generic image-builder-pulp-in-memory-db \
+              --from-literal=REDIS_HOST=$(cat /cdapp/cdappconfig.json | jq -r '.inMemoryDb.hostname') \
+              --from-literal=REDIS_PORT=$(cat /cdapp/cdappconfig.json | jq -r '.inMemoryDb.port') \
+              --from-literal=REDIS_PASSWORD=""  \
+              --from-literal=REDIS_DB=""
+      
+      # https://docs.pulpproject.org/pulp_operator/configuring/database/#configuring-pulp-operator-to-use-an-external-postgresql-installation
+      
+      kubectl create secret generic external-database \
+              --from-literal=POSTGRES_HOST=$(cat /cdapp/cdappconfig.json | jq -r '.database.hostname')  \
+              --from-literal=POSTGRES_PORT=5432  \
+              --from-literal=POSTGRES_USERNAME=$(cat /cdapp/cdappconfig.json | jq -r '.database.adminUsername')  \
+              --from-literal=POSTGRES_PASSWORD=$(cat /cdapp/cdappconfig.json | jq -r '.database.adminPassword')  \
+              --from-literal=POSTGRES_DB_NAME=$(cat /cdapp/cdappconfig.json | jq -r '.database.name') \
+              --from-literal=POSTGRES_SSLMODE=disable
+      
+      echo "Dummy output so that 'bonfire deploy --set-image-tag' will not choke, it requires this string to be present"
+      echo "${IMAGE}:${IMAGE_TAG}"
+
+      # FIXME: Look into having the container/pod run and stop, probably a "job" rather than a "deployment" in the clowdapp.
+      # For now, it is useful to have the container running. We can run commands on it.
+      sleep 9999999999
+
+- apiVersion: operators.coreos.com/v1alpha1
+  kind: Subscription
+  metadata:
+    labels:
+      operators.coreos.com/pulp-operator.pulp: ""
+    name: pulp-operator
+  # namespace: "${ENV_NAME}"
+  spec:
+    channel: beta
+    installPlanApproval: Automatic
+    name: pulp-operator
+    source: community-operators
+    sourceNamespace: openshift-marketplace
+    startingCSV: pulp-operator.v1.0.0-alpha.8
+    config:
+      resources:
+        requests:
+          memory: "64Mi"
+          cpu: "250m"
+        limits:
+          memory: "128Mi"
+          cpu: "500m"
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdApp
+  metadata:
+    name: image-builder-pulp
+  #  namespace: "${ENV_NAME}"
+  spec:
+    envName: "${ENV_NAME}"
+    testing:
+      iqePlugin: image-builder
+    deployments:
+    - name: app
+      podSpec:
+        # dummy container
+        image: "quay.io/openshift/origin-cli:latest"
+        command: ['bash', '-x', '/tmp/config.sh']
+        volumes:
+        - name: config-sh
+          configMap:
+            name: config-sh-map
+        volumeMounts:
+        - name: config-sh
+          mountPath: /tmp/config.sh
+          subPath: config-sh-file
+    database:
+      name: image-builder-pulp
+      version: 15
+    inMemoryDb: true
+    objectStore:
+      - image-builder-pulp-s3
+- apiVersion: repo-manager.pulpproject.org/v1beta2
+  kind: Pulp
+  metadata:
+    name: pulp
+  spec:
+    api:
+      replicas: "${{PULP_API_REPLICAS}}"
+    content:
+      replicas: "${{PULP_CONTENT_REPLICAS}}"
+    worker:
+      replicas: "${{PULP_WORKER_REPLICAS}}"
+    web:
+      replicas: "${{PULP_WEB_REPLICAS}}"
+    ingress_type: nodeport
+    pulp_settings:
+      domain_enabled: ${{DOMAIN_ENABLED}}
+      redis_db: 1
+    database:
+      external_db_secret: ${{DB_SECRET_NAME}}
+    cache:
+      enabled: true
+      external_cache_secret: image-builder-pulp-in-memory-db
+    object_storage_s3_secret: image-builder-pulp-s3-for-operator
+    image: "${IMAGE}"
+    image_version: "${IMAGE_TAG}"
+    image_web_version: latest
+    inhibit_version_constraint: true
+parameters:
+  - name: ENV_NAME
+    description: Specify your (ephemeral) namespace
+    required: true
+  - name: IMAGE
+    description: Specify which container image the operator will deploy as Pulp services.
+    value: quay.io/cloudservices/pulp-ostree-ubi
+  - name: IMAGE_TAG
+    description: Specify the tag or hash for the image deployed by the operator.
+    value: latest
+  - name: DOMAIN_ENABLED
+    description: Pulp setting that determines if domains are enabled.
+    value: "false"
+  - name: PULP_API_REPLICAS
+    description: Number of pulp api replicas
+    value: "1"
+  - name: PULP_WEB_REPLICAS
+    description: Number of pulp web replicas
+    value: "1"
+  - name: PULP_WORKER_REPLICAS
+    description: Number of pulp workers
+    value: "1"
+  - name: PULP_CONTENT_REPLICAS
+    description: Number of pulp content replicas
+    value: "1"
+  - name: DB_SECRET_NAME
+    description: Name of the secret with external database information for the operator.
+    value: "external-database"

@@ -1,0 +1,33 @@
+---
+apiVersion: cloud.redhat.com/v1alpha1
+kind: ClowdApp
+metadata:
+  name: pulp-single-container
+  namespace: ephemeral-9okrly
+spec:
+  disabled: true
+  envName: env-pulp-container
+  deployments:
+  - name: pulp-single-container
+    podSpec:
+      image: quay.io/pulp/pulp:latest
+      webServices:
+        public:
+          enabled: true
+        metrics:
+          enabled: true
+      securityContext:
+        allowPrivilegeEscalation: false
+        runAsUser: 0
+  kafkaTopics:
+    - replicas: 3
+      partitions: 64
+      topicName: topicOne
+  volumeMounts:
+    - name: settings
+      mountPath: /etc/pulp/settings.py
+      subPath: settings.py
+  volumes:
+    - name: settings
+      configMap:
+        name: settings

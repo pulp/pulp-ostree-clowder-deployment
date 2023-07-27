@@ -1,0 +1,25 @@
+- apiVersion: cloud.redhat.com/v1alpha1
+  kind: ClowdEnvironment
+  metadata:
+    name: pulp-clowdenv
+  spec:
+    targetNamespace: "${ENV_NAME}"
+    providers:
+      db:
+        mode: local
+      inMemoryDb:
+        mode: redis
+      #kafka:
+      #  mode: none
+      logging:
+        mode: none
+      objectStore:
+        mode: minio
+        port: 9000
+    resourceDefaults:
+      limits:
+        cpu: "500m"
+        memory: "8192Mi"
+      requests:
+        cpu: "300m"
+        memory: "1024Mi"
