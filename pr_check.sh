@@ -3,11 +3,11 @@
 # --------------------------------------------
 # Options that must be configured by app owner
 # --------------------------------------------
-APP_NAME="image-builder"  # name of app-sre "application" folder this component lives in
+APP_NAME="image-builder-crc"  # name of app-sre "application" folder this component lives in
 COMPONENT_NAME="image-builder-pulp"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 IMAGE="quay.io/cloudservices/pulp-ostree-ubi"
 
-IQE_PLUGINS="hms_integration"
+IQE_PLUGINS="image-builder"
 IQE_MARKER_EXPRESSION="api"
 IQE_FILTER_EXPRESSION=""
 IQE_CJI_TIMEOUT="30m"
