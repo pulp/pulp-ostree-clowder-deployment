@@ -6,9 +6,7 @@ labels:
 metadata:
   annotations:
     description: |-
-      A quick way to test and try Pulp running in OpenShift clusters. For more information about using this template see ...
-
-      WARNING: Any data stored will be lost upon pod destruction. Only use this template for testing.
+      Pulp OSTree is an OSTree repository management service.
     openshift.io/display-name: Pulp (Ephemeral)
     openshift.io/documentation-url: https://docs.pulpproject.org/pulpcore/
     openshift.io/long-description: This template defines resources needed
