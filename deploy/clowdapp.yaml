@@ -81,7 +81,7 @@ objects:
       
       # https://docs.pulpproject.org/pulp_operator/configuring/database/#configuring-pulp-operator-to-use-an-external-postgresql-installation
       
-      kubectl create secret generic external-database \
+      kubectl create secret generic image-builder-pulp-external-database \
               --from-literal=POSTGRES_HOST=$(cat /cdapp/cdappconfig.json | jq -r '.database.hostname')  \
               --from-literal=POSTGRES_PORT=5432  \
               --from-literal=POSTGRES_USERNAME=$(cat /cdapp/cdappconfig.json | jq -r '.database.adminUsername')  \
@@ -150,7 +150,7 @@ objects:
 - apiVersion: repo-manager.pulpproject.org/v1beta2
   kind: Pulp
   metadata:
-    name: pulp
+    name: image-builder-pulp
   spec:
     api:
       replicas: "${{PULP_API_REPLICAS}}"
@@ -201,4 +201,4 @@ parameters:
     value: "1"
   - name: DB_SECRET_NAME
     description: Name of the secret with external database information for the operator.
-    value: "external-database"
+    value: "image-builder-pulp-external-database"
