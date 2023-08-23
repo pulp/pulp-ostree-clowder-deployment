@@ -154,13 +154,43 @@ objects:
     name: ib-pulp
   spec:
     api:
-      replicas: "${{PULP_API_REPLICAS}}"
+      replicas: ${{PULP_API_REPLICAS}}
+      gunicorn_workers: 1
+      resource_requirements:
+        requests:
+          cpu: ${{PULP_API_CPU_REQUEST}}
+          memory: ${{PULP_API_MEMORY_REQUEST}}
+        limits:
+          cpu: ${{PULP_API_CPU_LIMIT}}
+          memory: ${{PULP_API_MEMORY_LIMIT}}
     content:
-      replicas: "${{PULP_CONTENT_REPLICAS}}"
-    worker:
-      replicas: "${{PULP_WORKER_REPLICAS}}"
+      replicas: ${{PULP_CONTENT_REPLICAS}}
+      gunicorn_workers: 1
+      resource_requirements:
+        requests:
+          cpu: ${{PULP_CONTENT_CPU_REQUEST}}
+          memory: ${{PULP_CONTENT_MEMORY_REQUEST}}
+        limits:
+          cpu: ${{PULP_API_CPU_LIMIT}}
+          memory: ${{PULP_CONTENT_MEMORY_LIMIT}}
     web:
-      replicas: "${{PULP_WEB_REPLICAS}}"
+      replicas: ${{PULP_WEB_REPLICAS}}
+      resource_requirements:
+        requests:
+          cpu: ${{PULP_WEB_CPU_REQUEST}}
+          memory: ${{PULP_WEB_MEMORY_REQUEST}}
+        limits:
+          cpu: ${{PULP_WEB_CPU_LIMIT}}
+          memory: ${{PULP_WEB_MEMORY_LIMIT}}
+    worker:
+      replicas: ${{PULP_WORKER_REPLICAS}}
+      resource_requirements:
+        requests:
+          cpu: ${{PULP_WORKER_CPU_REQUEST}}
+          memory: ${{PULP_WORKER_MEMORY_REQUEST}}
+        limits:
+          cpu: ${{PULP_WORKER_CPU_LIMIT}}
+          memory: ${{PULP_WORKER_MEMORY_LIMIT}}
     ingress_type: nodeport
     pulp_settings:
       domain_enabled: ${{DOMAIN_ENABLED}}
@@ -193,13 +223,61 @@ parameters:
     value: "1"
   - name: PULP_WEB_REPLICAS
     description: Number of pulp web replicas
-    value: "1"
+    value: "0" # setting to 0 because we are using an ingress as a reverse proxy
   - name: PULP_WORKER_REPLICAS
     description: Number of pulp workers
     value: "1"
   - name: PULP_CONTENT_REPLICAS
     description: Number of pulp content replicas
     value: "1"
+  - name: PULP_API_CPU_REQUEST
+    description: Amount of CPU to request for the API pods
+    value: "250m"
+  - name: PULP_CONTENT_CPU_REQUEST
+    description: Amount of CPU to request for the Content pods
+    value: "250m"
+  - name: PULP_WORKER_CPU_REQUEST
+    description: Amount of CPU to request for the Worker pods
+    value: "250m"
+  - name: PULP_WEB_CPU_REQUEST
+    description: Amount of CPU to request for the nginx pods
+    value: "250m"
+  - name: PULP_API_CPU_LIMIT
+    description: Limit of CPU use by API pods
+    value: "500m"
+  - name: PULP_CONTENT_CPU_LIMIT
+    description: Limit of CPU use by Content pods
+    value: "500m"
+  - name: PULP_WORKER_CPU_LIMIT
+    description: Limit of CPU use by Worker pods
+    value: "500m"
+  - name: PULP_WEB_CPU_LIMIT
+    description: Limit of CPU use by nginx pods
+    value: "500m"
+  - name: PULP_API_MEMORY_REQUEST
+    description: Amount of memory to request for API pods
+    value: "256Mi"
+  - name: PULP_CONTENT_MEMORY_REQUEST
+    description: Amount of memory to request for Content pods
+    value: "256Mi"
+  - name: PULP_WORKER_MEMORY_REQUEST
+    description: Amount of memory to request for Worker pods
+    value: "256Mi"
+  - name: PULP_WEB_MEMORY_REQUEST
+    description: Amount of memory to request for nginx pods
+    value: "256Mi"
+  - name: PULP_API_MEMORY_LIMIT
+    description: Limit of memory use by API pods
+    value: "512Mi"
+  - name: PULP_CONTENT_MEMORY_LIMIT
+    description: Limit of memory use by Content pods
+    value: "512Mi"
+  - name: PULP_WORKER_MEMORY_LIMIT
+    description: Limit of memory use by Worker pods
+    value: "512Mi"
+  - name: PULP_WEB_MEMORY_LIMIT
+    description: Limit of memory use by nginx pods
+    value: "512Mi"
   - name: DB_SECRET_NAME
     description: Name of the secret with external database information for the operator.
     value: "image-builder-pulp-external-database"
