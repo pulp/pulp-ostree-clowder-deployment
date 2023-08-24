@@ -205,6 +205,15 @@ objects:
     image_version: "${IMAGE_TAG}"
     image_web_version: latest
     inhibit_version_constraint: true
+    telemetry:
+      enabled: true
+      resource_requirements:
+        limits:
+          cpu: ${{OTEL_COLLECTOR_CPU_LIMIT}}
+          memory: ${{OTEL_COLLECTOR_MEMORY_LIMIT}}
+        requests:
+          cpu: ${{OTEL_COLLECTOR_CPU_REQUEST}}
+          memory: ${{OTEL_COLLECTOR_MEMORY_REQUEST}}
 parameters:
   - name: ENV_NAME
     description: Specify your (ephemeral) namespace
@@ -277,6 +286,18 @@ parameters:
     value: "512Mi"
   - name: PULP_WEB_MEMORY_LIMIT
     description: Limit of memory use by nginx pods
+    value: "512Mi"
+  - name: OTEL_COLLECTOR_CPU_REQUEST
+    description: Amount of CPU to request for OpenTelemetry Collector container
+    value: "250m"
+  - name: OTEL_COLLECTOR_CPU_LIMIT
+    description: Limit of CPU use by OpenTelemetry Collector container
+    value: "500m"
+  - name: OTEL_COLLECTOR_MEMORY_REQUEST
+    description: Amount of memory to request for OpenTelemetry Collector container
+    value: "256Mi"
+  - name: OTEL_COLLECTOR_MEMORY_LIMIT
+    description: Limit of memory use by OpenTelemetry Collector contaienr
     value: "512Mi"
   - name: DB_SECRET_NAME
     description: Name of the secret with external database information for the operator.
