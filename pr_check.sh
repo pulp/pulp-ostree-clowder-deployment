@@ -7,10 +7,12 @@ APP_NAME="image-builder-crc"  # name of app-sre "application" folder this compon
 COMPONENT_NAME="image-builder-pulp"  # name of app-sre "resourceTemplate" in deploy.yaml for this component
 IMAGE="quay.io/cloudservices/pulp-ostree-ubi"
 
-IQE_PLUGINS="image-builder"
-IQE_MARKER_EXPRESSION="api"
-IQE_FILTER_EXPRESSION=""
-IQE_CJI_TIMEOUT="30m"
+export IQE_PLUGINS="image-builder"  # name of the IQE plugin for this app.
+export IQE_CJI_TIMEOUT="30m"  # This is the time to wait for smoke test to complete or fail
+export IQE_MARKER_EXPRESSION="api" # run only api test
+export IQE_ENV="ephemeral" # run only api test
+export EXTRA_DEPLOY_ARGS="provisioning sources content-sources"
+export REF_ENV="insights-stage"
 
 # Install bonfire repo/initialize
 CICD_URL=https://raw.githubusercontent.com/RedHatInsights/bonfire/master/cicd
