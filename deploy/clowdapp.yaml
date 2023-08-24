@@ -64,6 +64,7 @@ objects:
         s3-secret-access-key: $S3_SECRET_ACCESS_KEY
         s3-bucket-name: $S3_BUCKET_NAME
         s3-endpoint: http://${S3_HOSTNAME}:9000
+        s3-region: us1-east
       EOF
       do
         echo "Trying kubectl apply again"
@@ -109,7 +110,7 @@ objects:
     name: pulp-operator
     source: community-operators
     sourceNamespace: openshift-marketplace
-    startingCSV: pulp-operator.v1.0.0-alpha.8
+    startingCSV: pulp-operator.v1.0.0-alpha.9
     config:
       resources:
         requests:
