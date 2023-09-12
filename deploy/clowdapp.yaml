@@ -206,7 +206,7 @@ objects:
     image_web_version: latest
     inhibit_version_constraint: true
     telemetry:
-      enabled: true
+      enabled: false
       resource_requirements:
         limits:
           cpu: ${{OTEL_COLLECTOR_CPU_LIMIT}}
@@ -229,16 +229,16 @@ parameters:
     value: "false"
   - name: PULP_API_REPLICAS
     description: Number of pulp api replicas
-    value: "1"
+    value: "0"
   - name: PULP_WEB_REPLICAS
     description: Number of pulp web replicas
     value: "0" # setting to 0 because we are using an ingress as a reverse proxy
   - name: PULP_WORKER_REPLICAS
     description: Number of pulp workers
-    value: "1"
+    value: "0"
   - name: PULP_CONTENT_REPLICAS
     description: Number of pulp content replicas
-    value: "1"
+    value: "0"
   - name: PULP_API_CPU_REQUEST
     description: Amount of CPU to request for the API pods
     value: "250m"
