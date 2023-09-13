@@ -61,7 +61,7 @@ RUN pip3 install --upgrade pip setuptools wheel && \
 
 
 RUN pip3 install --upgrade \
-  pulpcore \
+  pulpcore~=3.32 \
   pulp-certguard \
   pulp-ostree && \
   rm -rf /root/.cache/pip
