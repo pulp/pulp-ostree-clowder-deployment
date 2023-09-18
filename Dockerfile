@@ -41,7 +41,7 @@ RUN dnf -y install python38 python38-cryptography python38-devel && \
     dnf -y install python3-psycopg2 && \
     dnf -y install redhat-rpm-config gcc cargo libffi-devel && \
     dnf -y install python3-setuptools && \
-    dnf -y install ostree-libs ostree && \
+    dnf -y install ostree-libs ostree --allowerasing --nobest && \
     dnf -y install cairo-devel cmake gobject-introspection-devel cairo-gobject-devel
 RUN dnf clean all
 
@@ -61,7 +61,7 @@ RUN pip3 install --upgrade pip setuptools wheel && \
 
 
 RUN pip3 install --upgrade \
-  pulpcore \
+  pulpcore~=3.32.0 \
   pulp-certguard \
   pulp-ostree && \
   rm -rf /root/.cache/pip
