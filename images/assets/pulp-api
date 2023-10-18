@@ -1,42 +1,21 @@
-#!/bin/bash -x
+#!/bin/bash -eu
 
 /usr/bin/wait_on_postgres.py
+/usr/bin/wait_on_database_migrations.sh
 
-# Get list of installed plugins via pip
-# Assumes they are all named like "pulp-file" -> "file", with no 2nd dash.
-# (Was previously needed when we ran `pulpcore-manager makemigrations`)
-# PLUGINS=$(pip list | awk -F '[[:space:]]+|[-]' '/pulp-/{printf $2 " " }')
-
-/usr/local/bin/pulpcore-manager migrate --noinput
-
-set +x
-
-if [ -n "${PULP_SIGNING_KEY_FINGERPRINT}" ]; then
-    /usr/local/bin/pulpcore-manager add-signing-service "${COLLECTION_SIGNING_SERVICE}" /var/lib/pulp/scripts/collection_sign.sh "${PULP_SIGNING_KEY_FINGERPRINT}"
-    /usr/local/bin/pulpcore-manager add-signing-service "${CONTAINER_SIGNING_SERVICE}" /var/lib/pulp/scripts/container_sign.sh "${PULP_SIGNING_KEY_FINGERPRINT}" --class container:ManifestSigningService
+if which pulpcore-api
+then
+  PULP_API_ENTRYPOINT=("pulpcore-api")
+else
+  PULP_API_ENTRYPOINT=("gunicorn" "pulpcore.app.wsgi:application" "--bind" "[::]:24817" "--name" "pulp-api" "--access-logformat" "pulp [%({correlation-id}o)s]: %(h)s %(l)s %(u)s %(t)s \"%(r)s\" %(s)s %(b)s \"%(f)s\" \"%(a)s\"")
 fi
-
-ADMIN_PASSWORD_FILE=/etc/pulp/pulp-admin-password
-if [[ -f "$ADMIN_PASSWORD_FILE" ]]; then
-   echo "pulp admin can be initialized."
-   PULP_ADMIN_PASSWORD=$(cat $ADMIN_PASSWORD_FILE)
-fi
-
-if [ -n "${PULP_ADMIN_PASSWORD}" ]; then
-    /usr/local/bin/pulpcore-manager reset-admin-password --password "${PULP_ADMIN_PASSWORD}"
-fi
-set -x
-
-mkdir -p /var/lib/pulp/media \
-         /var/lib/pulp/assets \
-         /var/lib/pulp/tmp
 
 # NOTE: Due to the Linux dual-stack functionality, this will listen on both IPv4
 # IPv6, even though netstat may seem to indicate it is IPv6 only.
 # Due to containers using network namespaces, even if the host has this disabled
 # with /proc/sys/net/ipv6/bindv6only=1, the container will still have
 # it enabled with /proc/sys/net/ipv6/bindv6only=0 .
-exec gunicorn --bind '[::]:24817' pulpcore.app.wsgi:application \
---name pulp-api \
+exec "${PULP_API_ENTRYPOINT[@]}" \
 --timeout "${PULP_GUNICORN_TIMEOUT}" \
---workers "${PULP_API_WORKERS}"
+--workers "${PULP_API_WORKERS}" \
+--access-logfile -
